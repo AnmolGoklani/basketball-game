@@ -1,4 +1,6 @@
-//add ground collision
+var score = 0;
+
+var lastMousepos = { x: 0, y: 0 };
 
 var canvas = new Canvas2D();
 var bball = new Ball();
@@ -12,12 +14,13 @@ function gameinit(){
 function gameLoop() {
     update();
     render();
+    bball.maintainScore();
+    //console.log(score);
     requestAnimationFrame(gameLoop);
 }
 
 function update() {
     bball.update();
-
 }
 
 function render() {
@@ -25,6 +28,9 @@ function render() {
     canvas.drawImage(sprites.ball , { x: bball._position.x, y: bball._position.y  } , 2*bball._radius, 2*bball._radius);
     canvas.drawImage(sprites.net , { x: 0.7*canvas.width, y: canvas.height/4 }, canvas.width*0.4 , canvas.height*0.75);
 
+    bball.renderArrow();
+
+    canvas.printScore();
     
 
     // canvas._canvasContext.beginPath();
@@ -57,4 +63,8 @@ canvas._canvas.addEventListener('click', function(event) {
     
 });
 
+
+
 bball.addEventListeners();
+
+

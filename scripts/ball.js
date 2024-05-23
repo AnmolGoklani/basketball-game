@@ -1,4 +1,6 @@
-const Board = {position: {x: 933, y: 218}, width: 30, height: 240};
+const board = new Obstacle(993,218,30,240);
+const net1 = new Obstacle(802,360,10,40);
+const net2 = new Obstacle(905,370,35,55);
 
 function Ball(){
     this._position = { x: 0, y: 0 };
@@ -11,18 +13,22 @@ function Ball(){
     this._isDragging = false;
     this._isBouncing = false;
     this._counter = 0;
+    this._isShotDone = false;
 }
 
 
 Ball.prototype.addEventListeners = function(){
     canvas._canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
     canvas._canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-    canvas._canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+    canvas._canvas.addEventListener('mousemove', updatemousepos);
 }
 
 
 Ball.prototype.reset = function(){
 
+    if(!this._isShotDone) score = 0;
+
+    this._isShotDone = false;
     this._isBouncing = false;
     this._counter = 0;
     this._position.x = Math.ceil(Math.random()*710) + 5;
@@ -37,10 +43,10 @@ Ball.prototype.update = function(){
     
     if(this._isBouncing){
 
-        this.checkCollisionWithBoard();
+        this.checkCollisionWithobstacles();
 
         this._counter++;
-        if(this._counter >= 100){
+        if(this._counter >= 190){
             this.reset();
         }
     }
@@ -52,38 +58,38 @@ Ball.prototype.update = function(){
     
 }
 
-Ball.prototype.checkCollisionWithBoard = function() {
+Ball.prototype.checkCollisionWithobstacles = function(){
+    this.checkCollisionWithobstacle(board);
+    this.checkCollisionWithobstacle(net1);
+    this.checkCollisionWithobstacle(net2);
+    this.checkCollisionWithGround();
+}
+
+Ball.prototype.checkCollisionWithobstacle = function(obstacle) {
     const ballCenterX = this._position.x + this._radius;
     const ballCenterY = this._position.y + this._radius;
 
-    // Calculate the nearest point on the rectangle to the ball's center
-    const nearestX = Math.max(Board.position.x, Math.min(ballCenterX, Board.position.x + Board.width));
-    const nearestY = Math.max(Board.position.y, Math.min(ballCenterY, Board.position.y + Board.height));
+    const nearestX = Math.max(obstacle.position.x, Math.min(ballCenterX, obstacle.position.x + obstacle.width));
+    const nearestY = Math.max(obstacle.position.y, Math.min(ballCenterY, obstacle.position.y + obstacle.height));
 
-    // Calculate the distance between the ball's center and the nearest point
     const distanceX = ballCenterX - nearestX;
     const distanceY = ballCenterY - nearestY;
     const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
-    // Check if the distance is less than or equal to the ball's radius
     if (distance <= this._radius) {
-        // Calculate the normal vector (normalized)
+
         const normalX = distanceX / distance;
         const normalY = distanceY / distance;
 
-        // Calculate the relative velocity in terms of the normal direction
         const velocityDotNormal = this._velocity.x * normalX + this._velocity.y * normalY;
 
-        // Calculate the velocity components in the direction of the normal and tangential
         const vxNormal = velocityDotNormal * normalX;
         const vyNormal = velocityDotNormal * normalY;
         const vxTangential = this._velocity.x - vxNormal;
         const vyTangential = this._velocity.y - vyNormal;
 
-        // Apply restitution (elasticity) to the normal component of the velocity
-        const restitution = 0.8; // Coefficient of restitution
-        const vxNormalAfterCollision = -vxNormal * restitution;
-        const vyNormalAfterCollision = -vyNormal * restitution;
+        const vxNormalAfterCollision = -vxNormal * 0.8;
+        const vyNormalAfterCollision = -vyNormal * 0.8;
 
         // The tangential component remains the same (no energy loss tangentially)
         this._velocity.x = vxNormalAfterCollision + vxTangential;
@@ -97,13 +103,27 @@ Ball.prototype.checkCollisionWithBoard = function() {
 }
 
 
+Ball.prototype.checkCollisionWithGround = function() {
+    if (this._position.y + 2*this._radius >= canvas._canvas.height) {
+    
+        this._velocity.y = -this._velocity.y * 0.8;
+    
+        const overlap = this._position.y + 2*this._radius - canvas._canvas.height;
+        this._position.y -= overlap;
+    }
+}
+
+
 Ball.prototype.onMouseDown = function(event){   
     if(!this._isBouncing){
         this._isDragging = true;
+        lastMousepos = getMousePosition(event);
+        //canvas.drawImage(sprites.ball , { x: 300, y: 100  } , 2*this._radius, 2*this._radius);
     }
 }
 
 Ball.prototype.onMouseUp = function(event){
+    //canvas.drawImage(sprites.ball , { x: 300, y: 100  } , 2*this._radius, 2*this._radius);
     if(this._isDragging){
         const mousePos = getMousePosition(event);
         this._isDragging = false;
@@ -127,14 +147,30 @@ Ball.prototype.onMouseUp = function(event){
     }
 }
 
-Ball.prototype.onMouseMove = function(event){
+updatemousepos = function(event){
+    lastMousepos = getMousePosition(event);
+}
+
+
+
+
+Ball.prototype.renderArrow = function(event){
     if(this._isDragging){
-        const mousePos = getMousePosition(event);
-        if(mousePos.y < this._position.y + this._radius){
-            render();
-            canvas.drawArrow({x: 500, y: 100});
-            // canvas.drawArrow(mousePos);
-            
-        }        
+        if(lastMousepos.y < this._position.y + this._radius){
+            canvas.drawArrow(lastMousepos);
+        }
+    }
+}
+
+Ball.prototype.maintainScore = function(){
+    if(this._isBouncing && !this._isShotDone){
+        const ballCenterX = this._position.x + this._radius;
+        const ballCenterY = this._position.y + this._radius;
+       
+
+        if(ballCenterY > 375 && ballCenterY < 390 && ballCenterX > 812 && ballCenterX < 900){
+            score++;
+            this._isShotDone = true;
+        }
     }
 }
